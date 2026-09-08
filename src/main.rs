@@ -1,6 +1,6 @@
 use std::io::stdin;
 
-use cpu::{assembler::Assembler, cpu::CPU, encoder::encode};
+use piku::{assembler::Assembler, cpu::CPU, encoder::encode};
 
 fn main() {
     let input = get_input();
