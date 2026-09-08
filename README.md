@@ -1,3 +1,6 @@
+# Introduction
+PIKU stands for PIKU is kinda useless. It is a 16-bit CPU architecture with a small custom instruction set.  
+
 # Memory layout
 **Memory map:**
 |    Region    | Purpose |
