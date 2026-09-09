@@ -1,8 +1,28 @@
+use crate::{assembler::Assembler, cpu::CPU, encoder::encode, error::Error};
+
 pub mod cpu;
 pub mod assembler;
 pub mod error;
 pub mod instruction;
 pub mod encoder;
+
+pub fn run(src: String) -> Result<(), Error> {
+    let items = Assembler::new(src).process()?;
+
+    let program = match encode(items) {
+        Ok(v) => v,
+        Err(e) => {
+            println!("An error occured during enocding: {e}");
+            return Ok(());
+        },
+    };
+
+    let mut cpu = CPU::new();
+    cpu.load(program);
+    let _ = cpu.run(false);
+
+    Ok(())
+}
 
 #[cfg(test)]
 mod tests {
