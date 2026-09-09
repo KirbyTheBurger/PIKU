@@ -1,5 +1,11 @@
-# Introduction
+# Introduction  
 PIKU stands for PIKU is kinda useless. It is a 16-bit CPU architecture with a small custom instruction set.  
+
+# Installation  
+PIKU is available to install from crates.io using cargo:  
+```bash
+cargo install piku
+```
 
 # Memory layout
 **Memory map:**
