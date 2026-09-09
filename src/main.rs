@@ -2,7 +2,7 @@ use clap::Parser;
 use piku::{assembler::Assembler, cpu::CPU, encoder::encode};
 
 #[derive(clap::Parser)]
-#[command(name = "PIKU", version = "0.1.0", about = "A 16-bit CPU architecture with a custom instruction set")]
+#[command(name = "PIKU", version, about, long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,

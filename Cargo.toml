@@ -2,6 +2,8 @@
 name = "piku"
 version = "0.1.0"
 edition = "2024"
+description = "A 16-bit CPU architecture with a custom instruction set"
+license = "MIT"
 
 [dependencies]
 clap = { version = "4.6.6", features = ["derive"] }
