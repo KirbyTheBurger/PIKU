@@ -7,6 +7,13 @@ PIKU is available to install from crates.io using cargo:
 cargo install piku
 ```
 
+# Usage
+When installed, the `piku` command becomes available.  
+`piku help` displays the help menu. Use `piku run <FILE>` to run a .piku file.  
+
+# Reporting bugs
+If you ever encounter bugs, please report it with the source code encountering the error, the error itself and the output produced by `piku run -d <FILE>`, which prints debug info.
+
 # Memory layout
 **Memory map:**
 |    Region    | Purpose |
