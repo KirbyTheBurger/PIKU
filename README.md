@@ -14,6 +14,13 @@ When installed, the `piku` command becomes available.
 # Reporting bugs
 If you ever encounter bugs, please report it with the source code encountering the error, the error itself and the output produced by `piku run -d <FILE>`, which prints debug info.
 
+# Overall project structure
+The main stages of running a .piku program look like the following:
+```
+source code -> assembler -> encoder -> VM/interpreter
+```
+The assembler produces a vector of instruction enums which then get encoded into bytecode by the encoder. The VM then interprets the bytecode and runs the program.
+
 # Memory layout
 **Memory map:**
 |    Region    | Purpose |
