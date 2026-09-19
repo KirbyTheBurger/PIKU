@@ -351,7 +351,7 @@ impl Assembler {
                             Some(c) => c,
                             None => break,
                         };
-                        if current.is_alphabetic() || *current == '_' {
+                        if current.is_alphanumeric() || *current == '_' {
                             s.push(*current);
                         } else {
                             break;
