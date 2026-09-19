@@ -1,6 +1,6 @@
 [package]
 name = "piku"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "A 16-bit CPU architecture with a custom instruction set"
 license = "MIT"
