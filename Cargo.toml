@@ -9,6 +9,7 @@ license = "MIT"
 clap = { version = "4.6.6", features = ["derive"] }
 console = "0.16.4"
 paste = "1.0.15"
+smallvec = "1.16.4"
 
 [dev-dependencies]
 criterion = { version = "0.8.2", features = ["html_reports"] }
@@ -16,3 +17,11 @@ criterion = { version = "0.8.2", features = ["html_reports"] }
 [[bench]]
 name = "assembler"
 harness = false
+
+[lib]
+bench = false
+
+[[bin]]
+name = "piku"
+path = "src/main.rs"
+bench = false

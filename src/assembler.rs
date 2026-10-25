@@ -3,6 +3,7 @@ use std::{fmt::Display};
 use crate::{error::Error::{self, *}, instruction::Instruction::{self, *}};
 
 use Operand::*;
+use smallvec::SmallVec;
 
 #[derive(Debug, Clone)]
 pub enum Operand {
@@ -288,8 +289,8 @@ impl Assembler {
         }
     }
 
-    fn parse_args(&mut self, amount: u8) -> Result<Vec<Operand>, Error> {
-        let mut args = vec![];
+    fn parse_args(&mut self, amount: u8) -> Result<SmallVec<[Operand; 2]>, Error> {
+        let mut args: SmallVec<[Operand; 2]> = SmallVec::new();
 
         self.skip_whitespace();
 
