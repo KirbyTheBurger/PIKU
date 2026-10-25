@@ -143,7 +143,7 @@ impl Assembler {
         let start = self.pos;
         let word = self.read_word()?;
         let end = start + word.len() - 1;
-        
+
         if word.ends_with(':') && word.len() > 1 {
             return Some(Ok(Item::Label(start, end)));
         }

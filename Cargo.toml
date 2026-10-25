@@ -17,6 +17,9 @@ criterion = { version = "0.8.2", features = ["html_reports"] }
 
 [profile.release]
 debug = true
+lto = "thin"
+codegen-units = 1
+panic = "abort"
 
 [[bench]]
 name = "assembler"
