@@ -20,6 +20,7 @@ pub enum Error {
     BracketCloseExpected(char),
     BracketCloseEOF,
     NumAboveCap(String),
+    InvalidMnemonic(String),
 }
 
 impl Display for Error {
@@ -38,6 +39,7 @@ impl Display for Error {
             ExpectedNum => write!(f, "Invalid argument, expected a number"),
             ExpectedRegAddr => write!(f, "Invalid argument, expected a register containing a memory adress"),
             ExpectedLabel => write!(f, "Invalid argument, expected a label"),
+            InvalidMnemonic(s) => write!(f, "Invalid mnemonic `{s}`"),
         }
     }
 }

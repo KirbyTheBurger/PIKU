@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display};
 
 use crate::{error::Error::{self, *}, instruction::Instruction::{self, *}};
 
@@ -37,8 +37,31 @@ pub enum Item {
     UnresolvedCall(String),
 }
 
+macro_rules! mnemonics {
+    ($($name:ident),* $(,)?) => {
+        #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+        #[allow(clippy::upper_case_acronyms)]
+        enum Mnemonic { $($name),* }
+
+        impl Mnemonic {
+            fn from_word(w: &str) -> Option<Self> {
+                match w {
+                    $(stringify!($name) => Some(Self::$name),)*
+                    _ => None,
+                }
+            }
+        }
+    };
+}
+
+mnemonics!(    
+    HLT, LD, ST, ADD, SUB, MUL, DIV, NOT, AND, OR, XOR, LSH, RSH,
+    JMP, CMP, JEQ, JNE, JLT, JLE, JGT, JGE, OUT, IN, PUSH, POP,
+    CALL, RET, LDS, STS, INC, DEC, MOD, JC, JNC,
+);
+
 pub struct Assembler {
-    input: Vec<char>,
+    src: String,
     pos: usize,
 }
 
@@ -90,9 +113,9 @@ macro_rules! ensure {
 }
 
 impl Assembler {
-    pub fn new(input: String) -> Assembler {
+    pub fn new(src: String) -> Assembler {
         Assembler {
-            input: input.chars().collect(),
+            src,
             pos: 0,
         }
     }
@@ -117,7 +140,6 @@ impl Assembler {
 
     fn process_instruction(&mut self) -> Option<Result<Item, Error>> {
         let word = self.read_word()?;
-        let word = word.as_str();
 
         if word.ends_with(':') && word.len() > 1 {
             return Some(Ok(Item::Label(
@@ -125,8 +147,11 @@ impl Assembler {
             )));
         }
 
-        match word {
-            "LD" => {
+        let Some(mnemonic) = Mnemonic::from_word(word)
+            else { return Some(Err(Error::InvalidMnemonic(word.to_string()))); };
+
+        match mnemonic {
+            Mnemonic::LD => {
                 let args = args!(self, 2);
                 let rx = ensure!(args[0], reg);
 
@@ -138,84 +163,84 @@ impl Assembler {
                     _ => Some(Err(Error::InvalidArg)),
                 }
             },
-            "HLT" => {
+            Mnemonic::HLT => {
                 instr(HLT)
             },
-            "ST" => {
+            Mnemonic::ST => {
                 let args = args!(self, 2);
                 let rx = ensure!(args[0], regaddr);
                 let ry = ensure!(args[1], reg);
 
                 instr(ST(rx, ry))
             },
-            "MUL" | "DIV" | "MOD" => {
+            Mnemonic::MUL | Mnemonic::DIV | Mnemonic::MOD => {
                 let args = args!(self, 2);
                 let rx = ensure!(args[0], reg);
                 let ry = ensure!(args[1], reg);
 
-                match word {
-                    "MUL" => instr(MUL(rx, ry)),
-                    "DIV" => instr(DIV(rx, ry)),
-                    "MOD" => instr(MOD(rx, ry)),
+                match mnemonic {
+                    Mnemonic::MUL => instr(MUL(rx, ry)),
+                    Mnemonic::DIV => instr(DIV(rx, ry)),
+                    Mnemonic::MOD => instr(MOD(rx, ry)),
                     _ => unreachable!()
                 }
             },
-            "NOT" | "IN" | "POP" | "INC" | "DEC" => {
+            Mnemonic::NOT | Mnemonic::IN | Mnemonic::POP | Mnemonic::INC | Mnemonic::DEC => {
                 let rx = ensure!(args!(self, 1)[0], reg);
 
-                match word {
-                    "NOT" => instr(NOT(rx)),
-                    "IN" => instr(IN(rx)),
-                    "POP" => instr(POP(rx)),
-                    "INC" => instr(INC(rx)),
-                    "DEC" => instr(DEC(rx)),
+                match mnemonic {
+                    Mnemonic::NOT => instr(NOT(rx)),
+                    Mnemonic::IN => instr(IN(rx)),
+                    Mnemonic::POP => instr(POP(rx)),
+                    Mnemonic::INC => instr(INC(rx)),
+                    Mnemonic::DEC => instr(DEC(rx)),
                     _ => unreachable!(),
                 }
             },
-            "AND" | "OR" | "XOR" | "LSH" | "RSH" | "SUB" | "ADD" | "CMP" => {
+            Mnemonic::AND | Mnemonic::OR | Mnemonic::XOR | Mnemonic::LSH | Mnemonic::RSH | Mnemonic::SUB | Mnemonic::ADD | Mnemonic::CMP => {
                 let args = args!(self, 2);
                 let rx = ensure!(args[0], reg);
 
                 match args[1] {
-                    Register(ry) => match word {
-                        "AND" => instr(ANDrr(rx, ry)),
-                        "OR" => instr(ORrr(rx, ry)),
-                        "XOR" => instr(XORrr(rx, ry)),
-                        "LSH" => instr(LSHrr(rx, ry)),
-                        "RSH" => instr(RSHrr(rx, ry)),
-                        "ADD" => instr(ADDrr(rx, ry)),
-                        "SUB" => instr(SUBrr(rx, ry)),
-                        "CMP" => instr(CMPrr(rx, ry)),
+                    Register(ry) => match mnemonic {
+                        Mnemonic::AND => instr(ANDrr(rx, ry)),
+                        Mnemonic::OR => instr(ORrr(rx, ry)),
+                        Mnemonic::XOR => instr(XORrr(rx, ry)),
+                        Mnemonic::LSH => instr(LSHrr(rx, ry)),
+                        Mnemonic::RSH => instr(RSHrr(rx, ry)),
+                        Mnemonic::ADD => instr(ADDrr(rx, ry)),
+                        Mnemonic::SUB => instr(SUBrr(rx, ry)),
+                        Mnemonic::CMP => instr(CMPrr(rx, ry)),
                         _ => unreachable!(),
                     },
-                    Number(n) => match word {
-                        "AND" => instr(ANDrn(rx, n)),
-                        "OR" => instr(ORrn(rx, n)),
-                        "XOR" => instr(XORrn(rx, n)),
-                        "LSH" => instr(LSHrn(rx, n)),
-                        "RSH" => instr(RSHrn(rx, n)),
-                        "ADD" => instr(ADDrn(rx, n)),
-                        "SUB" => instr(SUBrn(rx, n)),
-                        "CMP" => instr(CMPrn(rx, n)),
+                    Number(n) => match mnemonic {
+                        Mnemonic::AND => instr(ANDrn(rx, n)),
+                        Mnemonic::OR => instr(ORrn(rx, n)),
+                        Mnemonic::XOR => instr(XORrn(rx, n)),
+                        Mnemonic::LSH => instr(LSHrn(rx, n)),
+                        Mnemonic::RSH => instr(RSHrn(rx, n)),
+                        Mnemonic::ADD => instr(ADDrn(rx, n)),
+                        Mnemonic::SUB => instr(SUBrn(rx, n)),
+                        Mnemonic::CMP => instr(CMPrn(rx, n)),
                         _ => unreachable!(),
                     },
                     _ => throw(InvalidArg),
                 }
             },
-            "JMP" | "JEQ" | "JNE" | "JLT" | "JLE" | "JGT" | "JGE" | "JC" | "JNC" => {
+            Mnemonic::JMP | Mnemonic::JEQ | Mnemonic::JNE | Mnemonic::JLT | Mnemonic::JLE | Mnemonic::JGT | Mnemonic::JGE | Mnemonic::JC | Mnemonic::JNC => {
                 let args = args!(self, 1);
                 let l = ensure!(args[0].clone(), label);
 
-                let kind = match word {
-                    "JMP" => JumpKind::JMP,
-                    "JEQ" => JumpKind::JEQ,
-                    "JNE" => JumpKind::JNE,
-                    "JLT" => JumpKind::JLT,
-                    "JLE" => JumpKind::JLE,
-                    "JGT" => JumpKind::JGT,
-                    "JGE" => JumpKind::JGE,
-                    "JC"  => JumpKind::JC,
-                    "JNC" => JumpKind::JNC,
+                let kind = match mnemonic {
+                    Mnemonic::JMP => JumpKind::JMP,
+                    Mnemonic::JEQ => JumpKind::JEQ,
+                    Mnemonic::JNE => JumpKind::JNE,
+                    Mnemonic::JLT => JumpKind::JLT,
+                    Mnemonic::JLE => JumpKind::JLE,
+                    Mnemonic::JGT => JumpKind::JGT,
+                    Mnemonic::JGE => JumpKind::JGE,
+                    Mnemonic::JC  => JumpKind::JC,
+                    Mnemonic::JNC => JumpKind::JNC,
                     _ => unreachable!(),
                 };
 
@@ -224,43 +249,42 @@ impl Assembler {
                     label: l,
                 }))
             },
-            "OUT" | "PUSH" => {
+            Mnemonic::OUT | Mnemonic::PUSH => {
                 let args = args!(self, 1);
                 match args[0] {
-                    Register(rx) => match word {
-                        "OUT" => instr(OUTr(rx)),
-                        "PUSH" => instr(PUSHr(rx)),
+                    Register(rx) => match mnemonic {
+                        Mnemonic::OUT => instr(OUTr(rx)),
+                        Mnemonic::PUSH => instr(PUSHr(rx)),
                         _ => unreachable!(),
                     },
-                    Number(n) => match word {
-                        "OUT" => instr(OUTn(n)),
-                        "PUSH" => instr(PUSHn(n)),
+                    Number(n) => match mnemonic {
+                        Mnemonic::OUT => instr(OUTn(n)),
+                        Mnemonic::PUSH => instr(PUSHn(n)),
                         _ => unreachable!(),
                     },
                     _ => Some(Err(Error::InvalidArg)),
                 }
             },
-            "CALL" => {
+            Mnemonic::CALL => {
                 let args = args!(self, 1);
                 let l = ensure!(args[0].clone(), label);
                 Some(Ok(Item::UnresolvedCall(l)))
             },
-            "RET" => {
+            Mnemonic::RET => {
                 instr(RET)
             },
-            "LDS" => {
+            Mnemonic::LDS => {
                 let args = args!(self, 2);
                 let rx = ensure!(args[0], reg);
                 let n = ensure!(args[1], num);
                 instr(LDS(rx, n))
             },
-            "STS" => {
+            Mnemonic::STS => {
                 let args = args!(self, 2);
                 let n = ensure!(args[0], num);
                 let rx = ensure!(args[1], reg);
                 instr(STS(n, rx))
             },
-            _ => todo!()
         }
     }
 
@@ -270,7 +294,7 @@ impl Assembler {
         self.skip_whitespace();
 
         for i in 0..amount {
-            let current = *match self.current() {
+            let current = match self.current() {
                 Some(c) => c,
                 None => return Err(NotEnoughArgs)
             };
@@ -289,7 +313,7 @@ impl Assembler {
 
                     match self.current() {
                         Some(']') => self.advance(),
-                        Some(c) => return Err(BracketCloseExpected(*c)),
+                        Some(c) => return Err(BracketCloseExpected(c)),
                         None => return Err(BracketCloseEOF),
                     }
 
@@ -327,11 +351,11 @@ impl Assembler {
                         };
                         let valid = match base {
                             16 => current.is_ascii_hexdigit(),
-                            2 => *current == '0' || *current == '1',
+                            2 => current == '0' || current == '1',
                             _ => current.is_numeric(),
                         };
                         if valid {
-                            s.push(*current);
+                            s.push(current);
                         } else {
                             break;
                         }
@@ -351,8 +375,8 @@ impl Assembler {
                             Some(c) => c,
                             None => break,
                         };
-                        if current.is_alphanumeric() || *current == '_' {
-                            s.push(*current);
+                        if current.is_alphanumeric() || current == '_' {
+                            s.push(current);
                         } else {
                             break;
                         }
@@ -379,32 +403,27 @@ impl Assembler {
         Ok(args)
     }
 
-    fn read_word(&mut self) -> Option<String> {
-        let mut s = String::new();
-
-        loop {
-            let c = match self.current() {
-                Some(c) => c,
-                None => break,
-            };
+    fn read_word(&mut self) -> Option<&str> {
+        let start = self.pos;
+        while let Some(c) = self.current() {
             if c.is_whitespace() {
-                self.skip_whitespace();
                 break;
             }
-            s.push(*c);
             self.advance();
         }
+        let end = self.pos;
+        self.skip_whitespace();
 
-        if s.is_empty() {
+        if start == end {
             None
         } else {
-            Some(s)
+            Some(&self.src[start..end])
         }
     }
 
     fn parse_reg(&mut self) -> Result<u8, Error> {
         let next = match self.next() {
-            Some(c) => *c,
+            Some(c) => c,
             None => return Err(MissingRegIndex),
         };
         if matches!(next, '0'..='7') {
@@ -419,17 +438,17 @@ impl Assembler {
         self.pos += 1;
     }
 
-    fn current(&self) -> Option<&char> {
-        self.input.get(self.pos)
+    fn current(&self) -> Option<char> {
+        self.src.as_bytes().get(self.pos).map(|&b| b as char)
     }
 
-    fn next(&mut self) -> Option<&char> {
+    fn next(&mut self) -> Option<char> {
         self.advance();
         self.current()
     }
 
-    fn peek(&self) -> Option<&char> {
-        self.input.get(self.pos + 1)
+    fn peek(&self) -> Option<char> {
+        self.src.as_bytes().get(self.pos + 1).map(|&b| b as char)
     }
 
     fn skip_whitespace(&mut self) {
