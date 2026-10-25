@@ -325,7 +325,7 @@ impl Assembler {
                     }
                 },
                 c if c.is_numeric() => {
-                    let mut s = String::from(c);
+                    let mut start = self.pos;
 
                     let (base, prefix) = if c == '0' {
                         match self.peek() {
@@ -341,34 +341,29 @@ impl Assembler {
 
                     if prefix {
                         self.advance();
-                        s.clear();
+                        start = self.pos + 1;
                     }
 
                     loop {
                         self.advance();
-                        let current = match self.current() {
-                            Some(c) => c,
-                            None => break,
-                        };
+                        let Some(current) = self.current() else { break; };
                         let valid = match base {
                             16 => current.is_ascii_hexdigit(),
                             2 => current == '0' || current == '1',
-                            _ => current.is_numeric(),
+                            _ => current.is_ascii_digit(),
                         };
-                        if valid {
-                            s.push(current);
-                        } else {
-                            break;
-                        }
+                        if !valid { break };
                     }
 
-                    let num = match u16::from_str_radix(&s, base) {
+                    let end = self.pos;
+
+                    let num = match u16::from_str_radix(&self.src[start..end], base) {
                         Ok(n) => n,
-                        Err(_) => return Err(NumAboveCap(s)),
+                        Err(_) => return Err(NumAboveCap(self.src[start..end].to_string())),
                     };
                     args.push(Number(num));
                 },
-                c if c.is_alphabetic() || c == '_' => {
+                c if c.is_ascii_alphabetic() || c == '_' => {
                     let mut s = String::from(c);
                     loop {
                         self.advance();
@@ -376,7 +371,7 @@ impl Assembler {
                             Some(c) => c,
                             None => break,
                         };
-                        if current.is_alphanumeric() || current == '_' {
+                        if current.is_ascii_alphanumeric() || current == '_' {
                             s.push(current);
                         } else {
                             break;
