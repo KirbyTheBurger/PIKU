@@ -11,7 +11,7 @@ pub enum Operand {
     Number(u16),
     RegAdress(u8),
     Adress(u16),
-    Label(String),
+    Label(usize, usize),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -30,12 +30,12 @@ pub enum JumpKind {
 #[derive(Debug)]
 pub enum Item {
     Instruction(Instruction),
-    Label(String),
+    Label(usize, usize),
     UnresolvedJump {
         kind: JumpKind,
-        label: String,
+        label: (usize, usize),
     },
-    UnresolvedCall(String),
+    UnresolvedCall(usize, usize),
 }
 
 macro_rules! mnemonics {
@@ -107,7 +107,7 @@ macro_rules! ensure {
 
     ($arg:expr, label) => {
         match $arg {
-            Label(x) => x,
+            Label(x, y) => (x, y),
             _ => return throw(ExpectedLabel),
         }
     };
@@ -140,12 +140,12 @@ impl Assembler {
     }
 
     fn process_instruction(&mut self) -> Option<Result<Item, Error>> {
+        let start = self.pos;
         let word = self.read_word()?;
-
+        let end = start + word.len() - 1;
+        
         if word.ends_with(':') && word.len() > 1 {
-            return Some(Ok(Item::Label(
-                word[..word.len() - 1].to_string()
-            )));
+            return Some(Ok(Item::Label(start, end)));
         }
 
         let Some(mnemonic) = Mnemonic::from_word(word)
@@ -269,7 +269,7 @@ impl Assembler {
             Mnemonic::CALL => {
                 let args = args!(self, 1);
                 let l = ensure!(args[0].clone(), label);
-                Some(Ok(Item::UnresolvedCall(l)))
+                Some(Ok(Item::UnresolvedCall(l.0, l.1)))
             },
             Mnemonic::RET => {
                 instr(RET)
@@ -364,21 +364,21 @@ impl Assembler {
                     args.push(Number(num));
                 },
                 c if c.is_ascii_alphabetic() || c == '_' => {
-                    let mut s = String::from(c);
+                    let start = self.pos;
+
                     loop {
                         self.advance();
                         let current = match self.current() {
                             Some(c) => c,
                             None => break,
                         };
-                        if current.is_ascii_alphanumeric() || current == '_' {
-                            s.push(current);
-                        } else {
+                        if !(current.is_ascii_alphanumeric() || current == '_') {
                             break;
                         }
                     }
 
-                    args.push(Label(s));
+                    let end = self.pos;
+                    args.push(Label(start, end));
                 },
                 _ => return Err(InvalidArg),
             }
@@ -473,7 +473,7 @@ impl Display for Operand {
             Number(n) => write!(f, "{n}"),
             RegAdress(r) => write!(f, "[r{r}]"),
             Adress(n) => write!(f, "[{n}]"),
-            Label(s) => write!(f, "{s}"),
+            Label(x, y) => write!(f, "label ({x}-{y})"),
         }
     }
 }

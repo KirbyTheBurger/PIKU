@@ -34,7 +34,7 @@ fn main() {
                 },
             };
 
-            let mut assembler = Assembler::new(src);
+            let mut assembler = Assembler::new(src.clone());
             let items = match assembler.process() {
                 Ok(i) => i,
                 Err(e) => {
@@ -46,7 +46,7 @@ fn main() {
                 println!("{:?}", items);
             }
 
-            let program = match encode(items) {
+            let program = match encode(src, items) {
                 Ok(v) => v,
                 Err(e) => {
                     println!("An error occured during enocding: {e}");

@@ -7,9 +7,9 @@ pub mod instruction;
 pub mod encoder;
 
 pub fn run(src: String) -> Result<(), Error> {
-    let items = Assembler::new(src).process()?;
+    let items = Assembler::new(src.clone()).process()?;
 
-    let program = match encode(items) {
+    let program = match encode(src, items) {
         Ok(v) => v,
         Err(e) => {
             println!("An error occured during enocding: {e}");
@@ -34,7 +34,7 @@ mod tests {
             Ok(i) => i,
             Err(e) => panic!("{e}"),
         };
-        let program = match encode(items) {
+        let program = match encode(code.to_string(), items) {
             Ok(v) => v,
             Err(e) => panic!("{e}"),
         };

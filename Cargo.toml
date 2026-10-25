@@ -22,6 +22,10 @@ debug = true
 name = "assembler"
 harness = false
 
+[[bench]]
+name = "stress"
+harness = false
+
 [lib]
 bench = false
 
